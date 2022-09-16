@@ -275,21 +275,42 @@ function __button(sprite, callback, args, x, y, rotation, colour, alpha)  : __fr
 	self.height = sprite_get_height(sprite);
 	self.state = ButtonState.Default;
 	
+	//For hover animation
+	self.frame = 0;
+	self.fspd = sprite_get_speed(sprite)/60;
+	self.max_frames = sprite_get_number(sprite);
+	
 	static set_on_press_type = function(type, args) {
 		self.on_press_type = type;
 		self.on_press_args = args;
 	}
 	static draw = function() {
-		//Our state will determine which sprite we draw! Frame 0, 1, or 2...
-		var frame = min(state, ButtonState.Pressing);
-		draw_sprite_ext(sprite, frame, x, y, xscale, yscale, rotation, colour, alpha);
+		//The first frame is DEFAULT, middle frames are all hover animation, and last frame is PRESSED
+		var index;
+		switch(state) {
+			case ButtonState.Default:
+				index = 0;
+				break;
+			case ButtonState.Hover:
+				frame += self.fspd;
+				if(frame >= max_frames-1) {
+					frame = 1;
+				} 
+				index = frame;
+				break;
+			case ButtonState.Pressing:
+			case ButtonState.Pressed:
+				index = max_frames - 1;
+				break;
+		}
+		draw_sprite_ext(sprite, index, x, y, xscale, yscale, rotation, colour, alpha);
 	}
 	static update = function() {
 		switch(state) {
 			case ButtonState.Default:
 				if(mouse_on(INPUT.mouse_x, INPUT.mouse_y, x, y)) {
 					self.state = ButtonState.Hover;
-					frame = 0;
+					frame = 1;
 				}
 				break;
 			case ButtonState.Hover:
@@ -311,7 +332,8 @@ function __button(sprite, callback, args, x, y, rotation, colour, alpha)  : __fr
 				break;
 				
 			case ButtonState.Pressed:
-				self.state = ButtonState.Default;
+				self.state = ButtonState.Hover;
+				frame = 1;
 				break;
 		}
 	}

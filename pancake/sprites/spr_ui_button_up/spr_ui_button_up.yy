@@ -41,7 +41,7 @@
     "spriteId": {"name":"spr_ui_button_up","path":"sprites/spr_ui_button_up/spr_ui_button_up.yy",},
     "timeUnits": 1,
     "playback": 1,
-    "playbackSpeed": 2.0,
+    "playbackSpeed": 4.0,
     "playbackSpeedType": 0,
     "autoRecord": true,
     "volume": 1.0,
