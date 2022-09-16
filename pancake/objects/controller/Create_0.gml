@@ -1,17 +1,60 @@
 
 pancake = new Pancake();
-var frame = pancake.frame(0, 0);
+var menu_frame = pancake.frame(0.15, 0.2, 0.7, 0.6);
 
-var rect = frame.rectangle(0.2, 0.2, 0.6, 0.6, c_gray);
-var spr = frame.sprite(spr_bean, false, 0.02, 0.3);
+menu_frame.button(spr_ui_exit, function() {
+	show_debug_message("exit menu!");
+}, undefined, 1.01);
+	
+/////////PHONE
+var phone_frame = menu_frame.frame(0, 0, 0.24, 1);
+phone_frame.nineslice(spr_ui_slice_pink);
 
-var str = "test test test test testing helo test testest testtes testes testestes";
-//str, font, x, y, width, height, colour, alpha, halign, valign, sep
-frame.text(str, fnt_text, 0.2, 0.2, 0.3, 0.3);
+var phone_display = phone_frame.frame(0.1, 0.1, 0.8, 0.75);
+phone_display.nineslice(spr_ui_slice_blue);
 
-//spr, callback, args, x, y, rotation, colour, alpha
-var but = frame.button([spr_button_default, spr_button_hover, spr_button_pressed], function(spr) {
-	spr.animate = !spr.animate;
-}, [spr], 0.1, 0.1);
+/////////MENU
+////NAME
+var name_frame = menu_frame.frame(0.25, 0, 0.75, 0.18);
+name_frame.nineslice(spr_ui_slice_blue);
+name_frame.text("Name: ", 0.05, 0.5, undefined, fa_middle);
+name_frame.rectangle(0.2, 0.2, 0.6, 0.6, c_white);
 
-but.text("toggle the bean boogie!!", fnt_text, 0.5, 0.5, 1, 1, c_black, 1, fa_middle, fa_center);
+////CHARACTER
+var character_frame = menu_frame.frame(0.25, 0.2, 0.75, 0.8);
+character_frame.nineslice(spr_ui_slice_purple);
+character_frame.text("My New Beginning", 0.5, 0.05, fa_middle);
+
+character_frame.rectangle(0.05, 0.2, 0.2, 0.6, merge_colour(c_white, c_orange, 0.1));
+
+//Loop over to draw buttons
+var options = ["Skin", "Eyes", "Mouth", "Hair", "Shirt", "Pants", "Shoes"];
+var len = array_length(options)
+var columns = 2;
+var total_width = 0.6;
+var total_height = 0.6; 
+var column_width = total_width/columns;
+var half = ceil(len * 0.5);
+var start_x = 0.3;
+var start_y = 0.2;
+for(var i = 0; i < len; i++) {
+	var xx = start_x + ((i div half) * column_width);
+	var yy = start_y + ((i mod half) * (total_height / half));
+	
+	var option = options[i];
+	character_frame.button(spr_ui_button_left, function(option) {
+		print(option, "left");
+	}, [option], xx, yy);
+	
+	var x_sep = 0.05;
+	character_frame.text(option, xx + x_sep, yy);
+	character_frame.button(spr_ui_button_right, function(option) {
+		print(option, "right");
+	}, [option], xx + column_width - (x_sep*2), yy);
+}
+
+character_frame.text("Don't worry, you can make changes in your life whenever you like!", 0.5, 0.95, fa_middle, fa_bottom);
+
+/////////INVENTORY
+var inventory_frame = pancake.frame(0.1, 0.9, 0.8, 0.1);
+inventory_frame.nineslice(spr_ui_slice_pink);

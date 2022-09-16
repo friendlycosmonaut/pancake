@@ -9,6 +9,7 @@ enum OnPressType {
 enum ButtonState {
 	Default,
 	Hover,
+	Pressing,
 	Pressed
 }
 
@@ -58,9 +59,12 @@ function Pancake() constructor {
 	}
 
 	static frame = function(x=0, y=0, width=1, height=1, rotation=0, alpha=1) {
+		x *= gui_width;
+		y *= gui_height;
 		width *= gui_width;
 		height *= gui_height;
-		var new_frame = new __frame(0, 0, width, height, rotation, alpha);
+		var new_frame = new __frame(x, y, width, height, rotation, alpha);
+		new_frame.update_relative(0, 0, 1, 1, 0, c_white, 1);
 		array_push(stack, new_frame);
 		return new_frame;
 	}
@@ -94,15 +98,18 @@ function __frame(x, y, width, height, rotation, alpha) constructor {
 	self.height = height;
 	self.colour = undefined;
 	
-	//Events
-	static draw_event = function(x, y, xscale, yscale, rotation, alpha) {
+	static update_relative = function(x, y, xscale, yscale, rotation, alpha) {
 		self.x = relative.x + x;
 		self.y = relative.y + y;
+		
 		self.rotation = relative.rotation * rotation;
 		self.alpha = relative.alpha * alpha;
 		self.xscale = relative.xscale * xscale;
 		self.yscale = relative.xscale * yscale;
-		
+	}
+	//Events
+	static draw_event = function(x, y, xscale, yscale, rotation, alpha) {
+		update_relative(x, y, xscale, yscale, rotation, alpha);
 		draw();
 		draw_children(self.x, self.y, self.xscale, self.yscale, self.rotation, self.alpha);
 	}
@@ -122,56 +129,79 @@ function __frame(x, y, width, height, rotation, alpha) constructor {
 			stack[i].update(self.x, self.y);
 		}	
 	}
-	
+	static add_widget = function(widget) {
+		widget.update_relative(self.x, self.y, self.xscale, self.yscale, self.rotation, self.alpha);
+		array_push(stack, widget);
+	}
 	//Functions
 	static mouse_on = function(mouse_x, mouse_y, x, y) {
 		return point_in_rectangle(mouse_x, mouse_y, x, y, x+self.width, y+self.height);
 	}
 	
 	//Widgets
-	static sprite = function(spr, animate=false, x=0, y=0, frame=0, rotation=0, colour=c_white, alpha=1) {
+	///@func nineslice(spr, x_frac, y_frac, width_frac, height_frac, animate, frame, rotation, colour, alpha)
+	static nineslice = function(spr, x=0, y=0, width=1, height=1, animate=false, frame=0, rotation=0, colour=c_white, alpha=1) {
+		if(!sprite_get_nineslice(spr).enabled) {
+			show_error("Tried to create ninelsice ui with sprite: "+sprite_get_name(spr), " however nineslice is not enabled.");
+		}
+		
+		width *= self.width;
+		height *= self.height;
 		x *= self.width;
 		y *= self.height;
-		var rect = new __sprite(spr, animate, x, y, frame, rotation, colour, alpha);
-		array_push(stack, rect);
-		return rect;
+		
+		var widget = new __sprite(spr, animate, x, y, width, height, frame, rotation, colour, alpha);
+		add_widget(widget);
+		return widget;
 	}
+	///@func sprite(spr, x_frac, y_frac, animate, frame, rotation, colour, alpha)
+	static sprite = function(spr, x=0, y=0, frame=0, animate=false, rotation=0, colour=c_white, alpha=1) {
+		x *= self.width;
+		y *= self.height;
+		var widget = new __sprite(spr, animate, x, y, undefined, undefined, frame, rotation, colour, alpha);
+		add_widget(widget);
+		return widget;
+	}
+	///@func rectangle(x_frac, y_frac, width_frac, height_frac, colour, rotation, alpha)
 	static rectangle = function(x=0, y=0, width=1, height=1, colour=c_white, rotation=0, alpha=1) {
 		width *= self.width;
 		height *= self.height;
 		x *= self.width;
 		y *= self.height;
-		var rect = new __rectangle(x, y, width, height, rotation, colour, alpha);
-		array_push(stack, rect);
-		return rect;
+		var widget = new __rectangle(x, y, width, height, rotation, colour, alpha);
+		add_widget(widget);
+		return widget;
 	}
-	static text = function(str, font, x=0, y=0, width=1, height=1, colour=c_white, alpha, halign=fa_left, valign=fa_top, sep=1) {
+	///@func text(str, x_frac, y_frac, halign, valign, colour, font, width_frac, height_frac, alpha, line_separation)
+	static text = function(str, x=0, y=0, halign=fa_left, valign=fa_top, colour=c_black, font=fnt_text, width=1, height=1, alpha, sep=1) {
 		width *= self.width;
 		height *= self.height;
 		x *= self.width;
 		y *= self.height;
-		var txt = new __text(str, font, x, y, width, height, colour, alpha, halign, valign, sep);
-		array_push(stack, txt);
-		return txt;
+		var widget = new __text(str, font, x, y, width, height, colour, alpha, halign, valign, sep);
+		add_widget(widget);
+		return widget;
 	}
+	///@func button(sprites, callback_function, arguments, x_frac, y_frac, rotation, colour, alpha)
 	static button = function(sprites, callback, args=[], x=0, y=0, rot=0, colour=c_white, alpha=1) {
 		x *= self.width;
 		y *= self.height;
-		var rect = new __button(sprites, callback, args, x, y, rot, colour, alpha);
-		array_push(stack, rect);
-		return rect;
+		var widget = new __button(sprites, callback, args, x, y, rot, colour, alpha);
+		add_widget(widget);
+		return widget;
 	}
+	///@func frame(x_frac, y_frac, width_frac, height_frac, rotation, alpha)
 	static frame = function(x=0, y=0, width=1, height=1, rotation=0, alpha=1) {
 		width *= self.width;
 		height *= self.height;
 		x *= self.width;
 		y *= self.height;
-		var new_frame = new __frame(x, y, width, height, rotation, alpha);
-		array_push(stack, new_frame);
-		return new_frame;
+		var widget = new __frame(x, y, width, height, rotation, alpha);
+		add_widget(widget);
+		return widget;
 	}
 }
-function __sprite(spr, animate, x, y, anim_frame, rotation, colour, alpha) : __frame(x, y, 1, 1, rotation, alpha) constructor {
+function __sprite(spr, animate, x, y, width, height, anim_frame, rotation, colour, alpha) : __frame(x, y, width, height, rotation, alpha) constructor {
 	self.spr = spr;
 	self.frame = anim_frame;
 	self.fspd = sprite_get_speed(spr)/60;
@@ -190,7 +220,12 @@ function __sprite(spr, animate, x, y, anim_frame, rotation, colour, alpha) : __f
 			}
 		}	
 		
-		draw_sprite_ext(spr, frame, x, y, xscale, yscale, rotation, colour, alpha);
+		var draw_xscale = xscale;
+		var draw_yscale = yscale;
+		
+		if(self.width != undefined) draw_xscale *= width/spr_width;
+		if(self.height != undefined) draw_yscale *= height/spr_height;
+		draw_sprite_ext(spr, frame, x, y, draw_xscale, draw_yscale, rotation, colour, alpha);
 	}
 	static update = function(x, y) {
 		x += self.x;
@@ -223,16 +258,8 @@ function __text(str, font, x, y, width, height, colour, alpha, halign, valign, s
 	}
 	static update = function() {}
 }
-function __button(sprites, callback, args, x, y, rotation, colour, alpha)  : __frame(x, y, 1, 1, rotation, alpha) constructor {
-	self.sprites = is_array(sprites) ? sprites : [sprites];
-	self.fspds = [];
-	self.max_frames = [];
-	self.frame = 0;
-	for(var i = 0; i < array_length(self.sprites); i++) {
-		var spr = self.sprites[i];
-		array_push(self.fspds, sprite_get_speed(spr)/60);
-		array_push(self.max_frames, sprite_get_number(spr));
-	}
+function __button(sprite, callback, args, x, y, rotation, colour, alpha)  : __frame(x, y, 1, 1, rotation, alpha) constructor {
+	self.sprite = sprite;
 	
 	self.callback = callback;
 	self.args = args;
@@ -242,8 +269,8 @@ function __button(sprites, callback, args, x, y, rotation, colour, alpha)  : __f
 	self.on_press_type = OnPressType.DoNothing;
 	self.on_press_args = undefined;
 	
-	self.width = sprite_get_width(spr);
-	self.height = sprite_get_height(spr);
+	self.width = sprite_get_width(sprite);
+	self.height = sprite_get_height(sprite);
 	self.state = ButtonState.Default;
 	
 	static set_on_press_type = function(type, args) {
@@ -251,11 +278,9 @@ function __button(sprites, callback, args, x, y, rotation, colour, alpha)  : __f
 		self.on_press_args = args;
 	}
 	static draw = function() {
-		frame += self.fspds[state];
-		if(frame >= max_frames[state]) {
-			frame = 0;	
-		}
-		draw_sprite_ext(sprites[state], frame, x, y, xscale, yscale, rotation, colour, alpha);
+		//Our state will determine which sprite we draw! Frame 0, 1, or 2...
+		var frame = min(state, ButtonState.Pressing);
+		draw_sprite_ext(sprite, frame, x, y, xscale, yscale, rotation, colour, alpha);
 	}
 	static update = function() {
 		switch(state) {
@@ -268,20 +293,23 @@ function __button(sprites, callback, args, x, y, rotation, colour, alpha)  : __f
 			case ButtonState.Hover:
 				if(!mouse_on(INPUT.mouse_x, INPUT.mouse_y, x, y)) {
 					self.state = ButtonState.Default;
-					frame = 0;
-				} else if(INPUT.mouse_left_r) {
-					self.state = ButtonState.Pressed;
-					frame = 0;
-					if(self.callback != undefined) {
-						function_execute_alt(self.callback, self.args);
-					}	
+				} else if(INPUT.mouse_left_p) {
+					self.state = ButtonState.Pressing;
 				}
 				break;
-			case ButtonState.Pressed:
-				if(frame + self.fspds[state] >= max_frames[state]) {
+			case ButtonState.Pressing:
+				if(!mouse_on(INPUT.mouse_x, INPUT.mouse_y, x, y)) {
 					self.state = ButtonState.Default;
-					frame = 0;
+				} else if(INPUT.mouse_left_r) {
+					self.state = ButtonState.Pressed;
+					if(self.callback != undefined) {
+						function_execute_alt(self.callback, self.args);
+					}
 				}
+				break;
+				
+			case ButtonState.Pressed:
+				self.state = ButtonState.Default;
 				break;
 		}
 	}
@@ -299,4 +327,12 @@ function function_execute_alt(func, args) {
 		case 5: return f(a[0], a[1], a[2], a[3], a[4]);
 		case 6: return f(a[0], a[1], a[2], a[3], a[4], a[5]);
 	}
+}
+
+function print() {
+	var str = "";
+	for(var i = 0; i < argument_count; i++) {
+		str += string(argument[i]) + ", ";	
+	}
+	show_debug_message(str);
 }
