@@ -98,6 +98,7 @@ function __frame(x, y, width, height, rotation, alpha) constructor {
 	self.height = height;
 	self.colour = undefined;
 	
+	//
 	static update_relative = function(x, y, xscale, yscale, rotation, alpha) {
 		self.x = relative.x + x;
 		self.y = relative.y + y;
@@ -107,13 +108,13 @@ function __frame(x, y, width, height, rotation, alpha) constructor {
 		self.xscale = relative.xscale * xscale;
 		self.yscale = relative.xscale * yscale;
 	}
+	
 	//Events
 	static draw_event = function(x, y, xscale, yscale, rotation, alpha) {
 		update_relative(x, y, xscale, yscale, rotation, alpha);
 		draw();
 		draw_children(self.x, self.y, self.xscale, self.yscale, self.rotation, self.alpha);
 	}
-	
 	static draw = function() {}
 	static draw_children = function(x, y, xscale, yscale, rotation, alpha) {
 		var c = array_length(stack);
@@ -133,6 +134,7 @@ function __frame(x, y, width, height, rotation, alpha) constructor {
 		widget.update_relative(self.x, self.y, self.xscale, self.yscale, self.rotation, self.alpha);
 		array_push(stack, widget);
 	}
+	
 	//Functions
 	static mouse_on = function(mouse_x, mouse_y, x, y) {
 		return point_in_rectangle(mouse_x, mouse_y, x, y, x+self.width, y+self.height);
@@ -313,26 +315,4 @@ function __button(sprite, callback, args, x, y, rotation, colour, alpha)  : __fr
 				break;
 		}
 	}
-}
-
-function function_execute_alt(func, args) {
-	var f = func;
-	var a = args == undefined ? [] : args;
-	switch(array_length(args)) {
-		case 0: return f(); 	
-		case 1: return f(a[0]);
-		case 2: return f(a[0], a[1]);
-		case 3: return f(a[0], a[1], a[2]);
-		case 4: return f(a[0], a[1], a[2], a[3]);
-		case 5: return f(a[0], a[1], a[2], a[3], a[4]);
-		case 6: return f(a[0], a[1], a[2], a[3], a[4], a[5]);
-	}
-}
-
-function print() {
-	var str = "";
-	for(var i = 0; i < argument_count; i++) {
-		str += string(argument[i]) + ", ";	
-	}
-	show_debug_message(str);
 }
