@@ -7,6 +7,7 @@
     {"id":{"name":"spr_master_buttons","path":"sprites/spr_master_buttons/spr_master_buttons.yy",},"order":21,},
     {"id":{"name":"spr_ui_slice_blue","path":"sprites/spr_ui_slice_blue/spr_ui_slice_blue.yy",},"order":10,},
     {"id":{"name":"spr_button_hover","path":"sprites/spr_button_hover/spr_button_hover.yy",},"order":2,},
+    {"id":{"name":"Eases","path":"scripts/Eases/Eases.yy",},"order":3,},
     {"id":{"name":"spr_ui_slice_green","path":"sprites/spr_ui_slice_green/spr_ui_slice_green.yy",},"order":20,},
     {"id":{"name":"spr_button_pressed","path":"sprites/spr_button_pressed/spr_button_pressed.yy",},"order":3,},
     {"id":{"name":"spr_bean","path":"sprites/spr_bean/spr_bean.yy",},"order":0,},

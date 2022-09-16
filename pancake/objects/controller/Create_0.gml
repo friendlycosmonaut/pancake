@@ -1,6 +1,6 @@
 
 pancake = new Pancake();
-var menu_frame = pancake.frame(0.15, 0.2, 0.7, 0.6);
+menu_frame = pancake.frame(0.15, 0.2, 0.7, 0.6);
 
 menu_frame.button(spr_ui_exit, function() {
 	show_debug_message("exit menu!");

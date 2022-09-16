@@ -31,22 +31,23 @@ function Pancake() constructor {
 	stack = [];
 	
 	//Events
+	static update = function() {
+		update_children();	
+	}
+	static update_children = function() {
+		var c = array_length(stack);
+		for(var i = 0; i < c; i++) {
+			var child = stack[i];
+			//x, y, xscale, yscale, rotation, colour, alpha
+			child.update_event(0, 0, 1, 1, 0, c_white, 1);
+		}
+	}
 	static draw = function() {
 		var c = array_length(stack);
 		for(var i = 0; i < c; i++) {
 			var child = stack[i];
 			if(child.visible) {
-				//x, y, xscale, yscale, rotation, colour, alpha
-				child.draw_event(0, 0, 1, 1, 0, c_white, 1);
-			}
-		}
-	}
-	static update = function() {
-		var c = array_length(stack);
-		for(var i = 0; i < c; i++) {
-			var child = stack[i];
-			if(child.active) {
-				child.update();
+				child.draw_event();
 			}
 		}
 	}
@@ -76,6 +77,7 @@ function __frame(x, y, width, height, rotation, alpha) constructor {
 	active = true;
 	visible = true;
 	stack = [];
+	anims = [];
 	
 	//Fields that change relative to our parents
 	relative = {
@@ -98,49 +100,123 @@ function __frame(x, y, width, height, rotation, alpha) constructor {
 	self.height = height;
 	self.colour = undefined;
 	
-	//
-	static update_relative = function(x, y, xscale, yscale, rotation, alpha) {
-		self.x = relative.x + x;
-		self.y = relative.y + y;
-		
-		self.rotation = relative.rotation * rotation;
-		self.alpha = relative.alpha * alpha;
-		self.xscale = relative.xscale * xscale;
-		self.yscale = relative.xscale * yscale;
-	}
-	
 	//Events
-	static draw_event = function(x, y, xscale, yscale, rotation, alpha) {
-		update_relative(x, y, xscale, yscale, rotation, alpha);
+	static draw_event = function() {
 		draw();
-		draw_children(self.x, self.y, self.xscale, self.yscale, self.rotation, self.alpha);
+		var c = array_length(stack);
+		for(var i = 0; i < c; i++) {
+			var child = stack[i];
+			child.draw_event();
+		}
 	}
 	static draw = function() {}
-	static draw_children = function(x, y, xscale, yscale, rotation, alpha) {
-		var c = array_length(stack);
-		for(var i = 0; i < c; i++) {
-			var element = stack[i];
-			element.draw_event(x, y, xscale, yscale, rotation, alpha);
-		}	
-	}
+	
+	static update_event = function(x, y, xscale, yscale, rotation, alpha) {
+		if(array_length(anims) > 0) {
+			var anim = anims[0];
+			//Will return 'true' when finished
+			if(anim.run()) {
+				array_delete(anims, 0, 1);	
+			}
+		}
 		
-	static update = function() {
+		update_relative(x, y, xscale, yscale, rotation, alpha);
+		update();
 		var c = array_length(stack);
 		for(var i = 0; i < c; i++) {
-			stack[i].update(self.x, self.y);
-		}	
+			var child = stack[i];
+			child.update_event(self.x, self.y, self.xscale, self.yscale, self.rotation, self.alpha);
+		}
 	}
-	static add_widget = function(widget) {
-		widget.update_relative(self.x, self.y, self.xscale, self.yscale, self.rotation, self.alpha);
-		array_push(stack, widget);
+	static update = function() {}
+	
+	//Configure
+	static add_child = function(child) {
+		child.update_relative(self.x, self.y, self.xscale, self.yscale, self.rotation, self.alpha);
+		array_push(stack, child);
+	}
+	///@func add_ease(ease_function, variable_name, start_value, end_value, seconds)
+	static add_ease = function(ease_func, variable_name, start_value, end_value, seconds) {
+		var struct = self;
+		switch(variable_name) {
+			case "y": 
+			case "x":
+			case "alpha":
+			case "xscale":
+			case "yscale":
+				struct = relative; 
+				break;
+		}
+		
+		if(start_value == "current") {
+			start_value = variable_struct_get(struct, variable_name);
+		} else if(end_value == "current") {
+			end_value = variable_struct_get(struct, variable_name);
+		}
+		add_anim(run_ease, seconds, end_value, [ease_func, variable_name, start_value, end_value]);
+	}
+	static run_ease = function(time_ratio, ease, variable_name, start_value, end_value) {
+		var val = lerp(start_value, end_value, time_ratio) / abs(start_value-end_value);
+		var result = ease(val);
+		var corrected = lerp(start_value, end_value, result);
+		print(val, start_value, end_value, time_ratio, result, corrected);
+		
+		var struct = self;
+		switch(variable_name) {
+			case "y": 
+			case "x":
+			case "alpha":
+			case "xscale":
+			case "yscale":
+				struct = relative; 
+				break;
+		}
+		variable_struct_set(struct, variable_name, corrected);
+		return result;
+	}
+	///@func add_anim(function, seconds, end_result, arguments)
+	static add_anim = function(func, seconds, end_result, arguments) {
+		var anim = new Anim(self, func, seconds, end_result, arguments);
+		array_push(anims, anim);
+	}
+	function Anim(owner, func, seconds, end_result, arguments) constructor {
+		//We leave a place for the first entry to be the TIMER RATIO
+		array_insert(arguments, 0, 0);
+		self.owner = owner;
+		self.timer = 0;
+		self.func = func;
+		self.end_time = seconds;
+		self.end_result = end_result;
+		self.arguments = arguments;
+		//Our function for actually running the animation!
+		static run = function() {
+			self.timer += 1/60;
+			self.arguments[0] = self.timer/self.end_time;
+			var func = self.func;
+			var args = self.arguments;
+			with(self.owner) {
+				var result = function_execute_alt(func, args);
+			}
+			return result == self.end_result;
+		}	
 	}
 	
 	//Functions
 	static mouse_on = function(mouse_x, mouse_y, x, y) {
 		return point_in_rectangle(mouse_x, mouse_y, x, y, x+self.width, y+self.height);
 	}
+	static update_relative = function(x, y, xscale, yscale, rotation, alpha) {
+		self.x = self.relative.x + x;
+		self.y = self.relative.y + y;
+		
+		self.rotation = self.relative.rotation * rotation;
+		self.alpha = self.relative.alpha * alpha;
+		self.xscale = self.relative.xscale * xscale;
+		self.yscale = self.relative.xscale * yscale;
+	}
 	
-	//Widgets
+	
+	//Children Widgets
 	///@func nineslice(spr, x_frac, y_frac, width_frac, height_frac, animate, frame, rotation, colour, alpha)
 	static nineslice = function(spr, x=0, y=0, width=1, height=1, animate=false, frame=0, rotation=0, colour=c_white, alpha=1) {
 		if(!sprite_get_nineslice(spr).enabled) {
@@ -152,17 +228,17 @@ function __frame(x, y, width, height, rotation, alpha) constructor {
 		x *= self.width;
 		y *= self.height;
 		
-		var widget = new __sprite(spr, animate, x, y, width, height, frame, rotation, colour, alpha);
-		add_widget(widget);
-		return widget;
+		var child = new __sprite(spr, animate, x, y, width, height, frame, rotation, colour, alpha);
+		add_child(child);
+		return child;
 	}
 	///@func sprite(spr, x_frac, y_frac, animate, frame, rotation, colour, alpha)
 	static sprite = function(spr, x=0, y=0, frame=0, animate=false, rotation=0, colour=c_white, alpha=1) {
 		x *= self.width;
 		y *= self.height;
-		var widget = new __sprite(spr, animate, x, y, undefined, undefined, frame, rotation, colour, alpha);
-		add_widget(widget);
-		return widget;
+		var child = new __sprite(spr, animate, x, y, undefined, undefined, frame, rotation, colour, alpha);
+		add_child(child);
+		return child;
 	}
 	///@func rectangle(x_frac, y_frac, width_frac, height_frac, colour, rotation, alpha)
 	static rectangle = function(x=0, y=0, width=1, height=1, colour=c_white, rotation=0, alpha=1) {
@@ -170,9 +246,9 @@ function __frame(x, y, width, height, rotation, alpha) constructor {
 		height *= self.height;
 		x *= self.width;
 		y *= self.height;
-		var widget = new __rectangle(x, y, width, height, rotation, colour, alpha);
-		add_widget(widget);
-		return widget;
+		var child = new __rectangle(x, y, width, height, rotation, colour, alpha);
+		add_child(child);
+		return child;
 	}
 	///@func text(str, x_frac, y_frac, halign, valign, colour, font, width_frac, height_frac, alpha, line_separation)
 	static text = function(str, x=0, y=0, halign=fa_left, valign=fa_top, colour=c_black, font=fnt_text, width=1, height=1, alpha, sep=1) {
@@ -180,17 +256,17 @@ function __frame(x, y, width, height, rotation, alpha) constructor {
 		height *= self.height;
 		x *= self.width;
 		y *= self.height;
-		var widget = new __text(str, font, x, y, width, height, colour, alpha, halign, valign, sep);
-		add_widget(widget);
-		return widget;
+		var child = new __text(str, font, x, y, width, height, colour, alpha, halign, valign, sep);
+		add_child(child);
+		return child;
 	}
 	///@func button(sprites, callback_function, arguments, x_frac, y_frac, rotation, colour, alpha)
 	static button = function(sprites, callback, args=[], x=0, y=0, rot=0, colour=c_white, alpha=1) {
 		x *= self.width;
 		y *= self.height;
-		var widget = new __button(sprites, callback, args, x, y, rot, colour, alpha);
-		add_widget(widget);
-		return widget;
+		var child = new __button(sprites, callback, args, x, y, rot, colour, alpha);
+		add_child(child);
+		return child;
 	}
 	///@func frame(x_frac, y_frac, width_frac, height_frac, rotation, alpha)
 	static frame = function(x=0, y=0, width=1, height=1, rotation=0, alpha=1) {
@@ -198,9 +274,9 @@ function __frame(x, y, width, height, rotation, alpha) constructor {
 		height *= self.height;
 		x *= self.width;
 		y *= self.height;
-		var widget = new __frame(x, y, width, height, rotation, alpha);
-		add_widget(widget);
-		return widget;
+		var child = new __frame(x, y, width, height, rotation, alpha);
+		add_child(child);
+		return child;
 	}
 }
 function __sprite(spr, animate, x, y, width, height, anim_frame, rotation, colour, alpha) : __frame(x, y, width, height, rotation, alpha) constructor {
@@ -229,9 +305,8 @@ function __sprite(spr, animate, x, y, width, height, anim_frame, rotation, colou
 		if(self.height != undefined) draw_yscale *= height/spr_height;
 		draw_sprite_ext(spr, frame, x, y, draw_xscale, draw_yscale, rotation, colour, alpha);
 	}
-	static update = function(x, y) {
-		x += self.x;
-		y += self.y;
+	static update = function() {
+
 	}
 }
 function __rectangle(x, y, width, height, rotation, colour, alpha) : __frame(x, y, width, height, rotation, alpha) constructor {
