@@ -1,31 +1,32 @@
 
 pancake = new Pancake();
-menu_frame = pancake.frame(0.15, 0.2, 0.7, 0.6);
+menu_frame = pancake.frame(0.15, 0.2, 0.15, 0.2);
 
 menu_frame.button(spr_ui_exit, function() {
 	show_debug_message("exit menu!");
 }, undefined, 1.01);
 
 /////////PHONE
-var phone_frame = menu_frame.frame(0, 0, 0.24, 1);
+var phone_frame = menu_frame.frame(0, 0, 0.76, 0);
 phone_frame.nineslice(spr_ui_slice_pink);
 
-var phone_display = phone_frame.frame(0.1, 0.1, 0.8, 0.75);
+var phone_display = phone_frame.frame(0.1, 0.1, 0.1, 0.15);
 phone_display.nineslice(spr_ui_slice_blue);
 
 /////////MENU
 ////NAME
-var name_frame = menu_frame.frame(0.25, 0, 0.75, 0.18);
+var name_frame = menu_frame.frame(0.25, 0, 0, 0.8);
 name_frame.nineslice(spr_ui_slice_blue);
-name_frame.text("Name: ", 0.05, 0.5, undefined, fa_middle);
-name_frame.rectangle(0.2, 0.2, 0.6, 0.6, c_white);
+name_frame.text("Name: ", 0.05, 0.5, fa_left, fa_middle);
+name_frame.rectangle(0.2, 0.2, 0.1, 0.2, c_white);
+name_frame.text("Captain Bunbun", 0.25, 0.5, fa_left, fa_middle);
 
 ////CHARACTER
-var character_frame = menu_frame.frame(0.25, 0.2, 0.75, 0.8);
+var character_frame = menu_frame.frame(0.25, 0.21, 0, 0);
 character_frame.nineslice(spr_ui_slice_purple);
 character_frame.text("My New Beginning", 0.5, 0.05, fa_middle);
 
-character_frame.rectangle(0.05, 0.2, 0.2, 0.6, merge_colour(c_white, c_orange, 0.1));
+character_frame.rectangle(0.05, 0.2, 0.8, 0.4, merge_colour(c_white, c_orange, 0.1));
 
 //Loop over to draw buttons
 var options = ["Skin", "Eyes", "Mouth", "Hair", "Shirt", "Pants", "Shoes"];
@@ -56,5 +57,5 @@ for(var i = 0; i < len; i++) {
 character_frame.text("Don't worry, you can make changes in your life whenever you like!", 0.5, 0.95, fa_middle, fa_bottom);
 
 /////////INVENTORY
-var inventory_frame = pancake.frame(0.1, 0.9, 0.8, 0.1);
+var inventory_frame = pancake.frame(0.1, 0.9, 0.1, 0);
 inventory_frame.nineslice(spr_ui_slice_pink);
