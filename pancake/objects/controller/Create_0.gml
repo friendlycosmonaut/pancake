@@ -1,14 +1,10 @@
 menu_showing = true;
 
 pancake = new Pancake();
-menu_frame = pancake.frame(0.15, 0.2, 0.15, 0.2);
-
-menu_frame.button(spr_ui_exit, function() {
-	show_debug_message("exit menu!");
-}, undefined, 1.01);
+menu_frame = pancake.frame(0, 0, 0, 0);
 
 /////////PHONE
-var phone_frame = menu_frame.frame(0, 0, 0.76, 0);
+phone_frame = menu_frame.frame(0.15, 0.15, 0.7, 0.25);
 phone_frame.nineslice(spr_ui_slice_pink);
 
 var phone_display = phone_frame.frame(0.1, 0.1, 0.1, 0.15);
@@ -16,14 +12,19 @@ phone_display.nineslice(spr_ui_slice_blue);
 
 /////////MENU
 ////NAME
-var name_frame = menu_frame.frame(0.25, 0, 0, 0.8);
+panel_frame = menu_frame.frame(0.31, 0.15, 0.15, 0.25);
+panel_frame.button(spr_ui_exit, function() {
+	show_debug_message("exit menu!");
+}, undefined, 1.01);
+
+name_frame = panel_frame.frame(0, 0, 0, 0.8);
 name_frame.nineslice(spr_ui_slice_blue);
 name_frame.text("Name: ", 0.05, 0.5, fa_left, fa_middle);
 name_frame.rectangle(0.2, 0.2, 0.1, 0.2, c_white);
 name_frame.text("Captain Bunbun", 0.25, 0.5, fa_left, fa_middle);
 
 ////CHARACTER
-var character_frame = menu_frame.frame(0.25, 0.21, 0, 0);
+character_frame = panel_frame.frame(0, 0.21, 0, 0);
 character_frame.nineslice(spr_ui_slice_purple);
 character_frame.text("My New Beginning", 0.5, 0.05, fa_middle);
 

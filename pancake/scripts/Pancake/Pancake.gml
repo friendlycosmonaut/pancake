@@ -129,60 +129,71 @@ function __frame(left, top, right, bottom, rotation, alpha) constructor {
 	static add_child = function(child) {
 		array_push(stack, child);
 	}
-	///@func add_ease(ease_function, variable_name, start_value, end_value, seconds, relative)
-	static join_ease = function(ease_func, variable_name, start_value, end_value, seconds, relative) {		
-		var anim = new Ease(self, relative, seconds, [ease_func, variable_name, start_value, end_value]);
+	///@func join_ease(ease_function, variable_name, start_value, end_value, seconds, relative, delay)
+	static join_ease = function(ease_func, variable_name, start_value, end_value, seconds, relative=false, delay=0) {		
+		var anim = new Ease(self, relative, seconds, delay, [ease_func, variable_name, start_value, end_value]);
 		var c = array_length(eases)-1;
 		array_push(eases[c], anim);
 	}
-	///@func add_ease(ease_function, variable_name, start_value, end_value, seconds, relative)
-	static add_ease = function(ease_func, variable_name, start_value, end_value, seconds, relative) {
-		var anim = new Ease(self, relative, seconds, [ease_func, variable_name, start_value, end_value]);
+	///@func add_ease(ease_function, variable_name, start_value, end_value, seconds, relative, delay)
+	static add_ease = function(ease_func, variable_name, start_value, end_value, seconds, relative=false, delay=0) {
+		var anim = new Ease(self, relative, seconds, delay, [ease_func, variable_name, start_value, end_value]);
 		array_push(eases, [anim]);
 	}
 	
-	function Ease(owner, relative, seconds, arguments) constructor {
+	function Ease(owner, relative, seconds, delay, arguments) constructor {
 		self.owner = owner;
 		self.timer = 0;
 		self.end_time = seconds;
 		self.relative = relative;
 		
+		//Delay
+		self.delay = delay;
+		self.delay_timer = 0;
+		
 		//We leave a place for the first entry to be the TIMER RATIO
 		array_insert(arguments, 0, 0);
 		self.arguments = arguments;
-		self.init = false;
+		self.initialised = false;
 		//Our function for actually running the animation!
 		
-		static start = function() {
-			init = true;
-			if(relative) {
-				var variable_name = self.arguments[2];
-				var current = variable_struct_get(self.owner, variable_name);
-				//start value
-				self.arguments[3] += current;
-				//end value
-				self.arguments[4] += current;	
+		static init = function() {
+			if(!self.initialised) {
+				if(self.delay_timer >= self.delay) {
+					self.initialised = true;
+					if(self.relative) {
+						var variable_name = self.arguments[2];
+						var current = variable_struct_get(self.owner, variable_name);
+						//start value
+						self.arguments[3] += current;
+						//end value
+						self.arguments[4] += current;	
+					}	
+				} else {
+					self.delay_timer += 1/60;	
+				}
 			}
+			return self.initialised;
 		}
 		static run_ease = function(time_ratio, ease, variable_name, start_value, end_value) {
-			var val = abs(end_value - start_value) * time_ratio;
+			var dist = abs(end_value - start_value)
+			var val = (dist * time_ratio)/dist
 			var result = ease(val);
-			var corrected = start_value + ((end_value - start_value) * result);
+			var corrected = lerp(start_value, end_value, result);
 			//The "self" here will be the owner
 			variable_struct_set(self, variable_name, corrected);
 			return result;
 		}
 		
 		static run = function() {
-			if(self.init == false) {
-				self.start();	
-			}
-			self.timer += 1/60;
-			self.arguments[0] = self.timer/self.end_time;
-			var func = self.run_ease;
-			var args = self.arguments;
-			with(self.owner) {
-				function_execute_alt(func, args);
+			if(self.init()) {
+				self.timer += 1/60;
+				self.arguments[0] = self.timer/self.end_time;
+				var func = self.run_ease;
+				var args = self.arguments;
+				with(self.owner) {
+					function_execute_alt(func, args);
+				}
 			}
 			return self.timer >= self.end_time;
 		}	
