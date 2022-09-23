@@ -70,7 +70,7 @@ function __frame(left, top, right, bottom, rotation, alpha) constructor {
 	active = true;
 	
 	stack = [];
-	anims = [];
+	eases = [];
 	
 	//Fields that change relative to our parents
 	self.x = 0;
@@ -100,12 +100,18 @@ function __frame(left, top, right, bottom, rotation, alpha) constructor {
 	}
 	static draw = function() {}
 	static update_event = function(x, y, width, height, rotation, alpha) {
-		var c = array_length(anims);
-		for(var i = c-1; i >= 0; i--) {
-			var anim = anims[i];
-			//Will return 'true' when finished
-			if(anim.run()) {
-				array_delete(anims, i, 1);	
+		var anims_total = array_length(eases);
+		if(anims_total > 0) {
+			var c = array_length(eases[0]);
+			for(var i = c-1; i >= 0; i--) {
+				var anim = eases[0][i];
+				//Will return 'true' when finished
+				if(anim.run()) {
+					array_delete(eases[0], i, 1);
+				}
+			}
+			if(array_length(eases[0]) == 0) {
+				array_delete(eases, 0, 1);	
 			}
 		}
 		
@@ -123,44 +129,57 @@ function __frame(left, top, right, bottom, rotation, alpha) constructor {
 	static add_child = function(child) {
 		array_push(stack, child);
 	}
-	///@func add_anim(function, seconds, end_result, arguments)
-	static add_anim = function(func, seconds, end_result, arguments) {
-		var anim = new Anim(self, func, seconds, end_result, arguments);
-		array_push(anims, anim);
+	///@func add_ease(ease_function, variable_name, start_value, end_value, seconds, relative)
+	static join_ease = function(ease_func, variable_name, start_value, end_value, seconds, relative) {		
+		var anim = new Ease(self, relative, seconds, [ease_func, variable_name, start_value, end_value]);
+		var c = array_length(eases)-1;
+		array_push(eases[c], anim);
 	}
 	///@func add_ease(ease_function, variable_name, start_value, end_value, seconds, relative)
 	static add_ease = function(ease_func, variable_name, start_value, end_value, seconds, relative) {
-		if(relative) {
-			var current = variable_struct_get(self, variable_name);
-			start_value += current;
-			end_value += current;	
-		}
-		
-		add_anim(run_ease, seconds, [ease_func, variable_name, start_value, end_value]);
-	}
-	static run_ease = function(time_ratio, ease, variable_name, start_value, end_value) {
-		var val = abs(end_value - start_value) * time_ratio;
-		var result = ease(val);
-		var corrected = start_value + ((end_value - start_value) * result);
-		
-		variable_struct_set(self, variable_name, corrected);
-		return result;
+		var anim = new Ease(self, relative, seconds, [ease_func, variable_name, start_value, end_value]);
+		array_push(eases, [anim]);
 	}
 	
-	function Anim(owner, func, seconds, arguments) constructor {
-		//We leave a place for the first entry to be the TIMER RATIO
-		array_insert(arguments, 0, 0);
+	function Ease(owner, relative, seconds, arguments) constructor {
 		self.owner = owner;
 		self.timer = 0;
 		self.end_time = seconds;
+		self.relative = relative;
 		
-		self.func = func;
+		//We leave a place for the first entry to be the TIMER RATIO
+		array_insert(arguments, 0, 0);
 		self.arguments = arguments;
+		self.init = false;
 		//Our function for actually running the animation!
+		
+		static start = function() {
+			init = true;
+			if(relative) {
+				var variable_name = self.arguments[2];
+				var current = variable_struct_get(self.owner, variable_name);
+				//start value
+				self.arguments[3] += current;
+				//end value
+				self.arguments[4] += current;	
+			}
+		}
+		static run_ease = function(time_ratio, ease, variable_name, start_value, end_value) {
+			var val = abs(end_value - start_value) * time_ratio;
+			var result = ease(val);
+			var corrected = start_value + ((end_value - start_value) * result);
+			//The "self" here will be the owner
+			variable_struct_set(self, variable_name, corrected);
+			return result;
+		}
+		
 		static run = function() {
+			if(self.init == false) {
+				self.start();	
+			}
 			self.timer += 1/60;
 			self.arguments[0] = self.timer/self.end_time;
-			var func = self.func;
+			var func = self.run_ease;
 			var args = self.arguments;
 			with(self.owner) {
 				function_execute_alt(func, args);

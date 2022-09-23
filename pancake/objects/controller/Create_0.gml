@@ -1,3 +1,4 @@
+menu_showing = true;
 
 pancake = new Pancake();
 menu_frame = pancake.frame(0.15, 0.2, 0.15, 0.2);
